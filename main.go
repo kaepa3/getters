@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/dghubble/go-twitter/twitter"
 	"github.com/dghubble/oauth1"
@@ -20,7 +21,6 @@ func loadEnv() {
 	return
 
 }
-
 func main() {
 	c := getClient()
 
@@ -46,6 +46,10 @@ func getClient() *twitter.Client {
 	return twitter.NewClient(httpClient)
 }
 
+func query() string {
+	return "フォロー＆RT -裏垢"
+}
+
 func Search(c *twitter.Client) (*twitter.Search, error) {
 	// Search Tweets
 	search, _, err := c.Search.Tweets(&twitter.SearchTweetParams{
@@ -66,28 +70,30 @@ func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
 		}
 		err = FollowAndRetweet(c, &t)
 		if err != nil {
-			fmt.Println("----------------------------------------")
-			fmt.Println("err")
 			fmt.Println(err)
 		}
 		break
+		time.Sleep(20 * time.Second)
 	}
 }
+
 func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 	_, _, err := c.Friendships.Create(&twitter.FriendshipCreateParams{
-		UserID: t.User.ID,
+		UserID: t.RetweetedStatus.User.ID,
 	})
+	fmt.Printf("%v\n", t)
+	fmt.Println(t.Text)
 	fmt.Println("----------------------------------------")
-	fmt.Printf("%v \n", t.User)
+	fmt.Printf("user-iduser:%s \n", t.User.Name)
+	fmt.Printf("rt-iduser:%s \n", t.RetweetedStatus.User.Name)
 	if err != nil {
 		return err
 	}
 	_, _, err = c.Statuses.Retweet(t.ID, &twitter.StatusRetweetParams{})
-	fmt.Println("----------------------------------------")
-	fmt.Printf("%v", t.ID)
 	if err != nil {
 		return err
 	}
+	fmt.Println("ok!!!!")
 	return nil
 }
 
