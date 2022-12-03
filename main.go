@@ -1,42 +1,127 @@
 package main
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"os"
 
+	"github.com/dghubble/go-twitter/twitter"
+	"github.com/dghubble/oauth1"
 	"github.com/joho/godotenv"
-	"github.com/sivchari/gotwtr"
+	_ "github.com/mattn/go-sqlite3"
 )
 
-func loadEnv() string {
+func loadEnv() {
 	err := godotenv.Load()
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-	return os.Getenv("YOUR_TWITTER_BEARER_TOKEN")
+	return
+
 }
 
 func main() {
-	token := loadEnv()
-	client := gotwtr.New(token)
+	c := getClient()
 
-	opt := gotwtr.SearchTweetsOption{
-		TweetFields: []gotwtr.TweetField{
-			gotwtr.TweetFieldAuthorID,
-			gotwtr.TweetFieldAttachments,
-		},
-		MaxResults: 10,
-	}
-	t, err := client.SearchRecentTweets(context.Background(), "フォロー＆RT", &opt)
+	t, err := Search(c)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
+		return
 	}
-	for _, v := range t.Tweets {
-		fmt.Println("------------------------------")
-		fmt.Println(v.Text)
-		fmt.Println("===")
-		fmt.Println(v.ID)
+	FololowAndRetweetIfNeed(c, t)
+}
+
+func getClient() *twitter.Client {
+	loadEnv()
+	clientID := os.Getenv("APIKEY")
+	clientSecret := os.Getenv("APIKEY_SECRET")
+	accessToken := os.Getenv("ACCESS_TOKEN")
+	accessTokenSecret := os.Getenv("ACCESS_TOKEN_SECRET")
+
+	config := oauth1.NewConfig(clientID, clientSecret)
+	token := oauth1.NewToken(accessToken, accessTokenSecret)
+	httpClient := config.Client(oauth1.NoContext, token)
+
+	return twitter.NewClient(httpClient)
+}
+
+func Search(c *twitter.Client) (*twitter.Search, error) {
+	// Search Tweets
+	search, _, err := c.Search.Tweets(&twitter.SearchTweetParams{
+		Query: "フォロー＆RT",
+		Count: 10,
+	})
+	return search, err
+}
+
+func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
+	for _, t := range s.Statuses {
+		subject, err := isSubject(&t)
+		if err != nil {
+			fmt.Println(err)
+		}
+		if !subject {
+			continue
+		}
+		err = FollowAndRetweet(c, &t)
+		if err != nil {
+			fmt.Println("----------------------------------------")
+			fmt.Println("err")
+			fmt.Println(err)
+		}
+		break
 	}
+}
+func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
+	_, _, err := c.Friendships.Create(&twitter.FriendshipCreateParams{
+		UserID: t.User.ID,
+	})
+	fmt.Println("----------------------------------------")
+	fmt.Printf("%v \n", t.User)
+	if err != nil {
+		return err
+	}
+	_, _, err = c.Statuses.Retweet(t.ID, &twitter.StatusRetweetParams{})
+	fmt.Println("----------------------------------------")
+	fmt.Printf("%v", t.ID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+var (
+	DbName    = "history.sql"
+	TableName = "followRTs"
+)
+
+func isSubject(t *twitter.Tweet) (bool, error) {
+	db, err := sql.Open("sqlite3", DbName)
+	defer db.Close()
+
+	if err != nil {
+		return false, err
+	}
+	if _, err = db.Exec(fmt.Sprintf("select count(*) from %s", TableName)); err != nil {
+		sqlStmt := fmt.Sprintf("create table %s (id integer not null primary key AUTOINCREMENT, TweetID text)", TableName)
+		fmt.Printf("create tablel: %s\n", sqlStmt)
+		if _, err = db.Exec(sqlStmt); err != nil {
+			return false, err
+		}
+	}
+	// already add DB
+	query := fmt.Sprintf("select count(*) from %s where TweetID = %d", TableName, t.ID)
+	if _, err := db.Exec(query); err != nil {
+		fmt.Printf("query error:%s", query)
+		return false, err
+	}
+
+	// add DB
+	db.Begin()
+	if _, err := db.Exec(fmt.Sprintf("insert into %s(TweetID) values(%d)", TableName, t.ID)); err != nil {
+		return false, err
+	}
+	return true, nil
+
 }
