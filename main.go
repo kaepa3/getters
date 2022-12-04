@@ -72,7 +72,6 @@ func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		time.Sleep(20 * time.Second)
 	}
 }
 
@@ -80,6 +79,7 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 	_, _, err := c.Friendships.Create(&twitter.FriendshipCreateParams{
 		UserID: t.RetweetedStatus.User.ID,
 	})
+	time.Sleep(10 * time.Second)
 	fmt.Printf("%v\n", t)
 	fmt.Println(t.Text)
 	fmt.Println("----------------------------------------")
@@ -93,6 +93,7 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 		return err
 	}
 	fmt.Println("ok!!!!")
+	time.Sleep(20 * time.Second)
 	return nil
 }
 
