@@ -72,7 +72,6 @@ func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
 		if err != nil {
 			fmt.Println(err)
 		}
-		break
 		time.Sleep(20 * time.Second)
 	}
 }

@@ -2,4 +2,4 @@ build:
 	go build 
 
 pi:
-	GOOS=linux GOARCH=arm GOARM=6 go build -o priser main.go
+	xgo --targets=linux/arm github.com/kaepa3/getters
