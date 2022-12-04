@@ -86,11 +86,6 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 		UserID: t.RetweetedStatus.User.ID,
 	})
 	time.Sleep(10 * time.Second)
-	fmt.Printf("%v\n", t)
-	fmt.Println(t.Text)
-	fmt.Println("----------------------------------------")
-	fmt.Printf("user-iduser:%s \n", t.User.Name)
-	fmt.Printf("rt-iduser:%s \n", t.RetweetedStatus.User.Name)
 	if err != nil {
 		return err
 	}
