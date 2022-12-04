@@ -60,7 +60,9 @@ func Search(c *twitter.Client) (*twitter.Search, error) {
 }
 
 func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
+	count := 0
 	for _, t := range s.Statuses {
+		count++
 		subject, err := isSubject(&t)
 		if err != nil {
 			fmt.Println(err)
@@ -71,6 +73,10 @@ func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
 		err = FollowAndRetweet(c, &t)
 		if err != nil {
 			fmt.Println(err)
+		}
+		time.Sleep(5 * time.Minute)
+		if count > 5 {
+			break
 		}
 	}
 }
@@ -93,7 +99,6 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 		return err
 	}
 	fmt.Println("ok!!!!")
-	time.Sleep(20 * time.Second)
 	return nil
 }
 
