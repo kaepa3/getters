@@ -26,7 +26,7 @@ func main() {
 
 	t, err := Search(c)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		return
 	}
 	FololowAndRetweetIfNeed(c, t)
@@ -65,16 +65,16 @@ func FololowAndRetweetIfNeed(c *twitter.Client, s *twitter.Search) {
 		count++
 		subject, err := isSubject(&t)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		if !subject {
 			continue
 		}
 		err = FollowAndRetweet(c, &t)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
-		time.Sleep(5 * time.Minute)
+		time.Sleep(10 * time.Second)
 		if count > 5 {
 			break
 		}
@@ -85,7 +85,6 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 	_, _, err := c.Friendships.Create(&twitter.FriendshipCreateParams{
 		UserID: t.RetweetedStatus.User.ID,
 	})
-	time.Sleep(10 * time.Second)
 	if err != nil {
 		return err
 	}
@@ -93,7 +92,7 @@ func FollowAndRetweet(c *twitter.Client, t *twitter.Tweet) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("ok!!!!")
+	log.Println("ok!!!!")
 	return nil
 }
 
@@ -111,7 +110,7 @@ func isSubject(t *twitter.Tweet) (bool, error) {
 	}
 	if _, err = db.Exec(fmt.Sprintf("select count(*) from %s", TableName)); err != nil {
 		sqlStmt := fmt.Sprintf("create table %s (id integer not null primary key AUTOINCREMENT, TweetID text)", TableName)
-		fmt.Printf("create tablel: %s\n", sqlStmt)
+		log.Printf("create tablel: %s\n", sqlStmt)
 		if _, err = db.Exec(sqlStmt); err != nil {
 			return false, err
 		}
@@ -119,7 +118,7 @@ func isSubject(t *twitter.Tweet) (bool, error) {
 	// already add DB
 	query := fmt.Sprintf("select count(*) from %s where TweetID = %d", TableName, t.ID)
 	if _, err := db.Exec(query); err != nil {
-		fmt.Printf("query error:%s", query)
+		log.Printf("query error:%s", query)
 		return false, err
 	}
 
